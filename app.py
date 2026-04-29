@@ -60,11 +60,11 @@ import re
 match = re.search(r'{.*}', raw, re.DOTALL)
 
 if match:
-json_str = match.group(0)
-data = json.loads(json_str)
+    json_str = match.group(0)
+    data = json.loads(json_str)
 else:
-st.error("Erro ao interpretar resposta da AI")
-st.write(raw)
+    st.error("Erro ao interpretar resposta da AI")
+    st.write(raw)
 return
 
             # 3. Preencher template
