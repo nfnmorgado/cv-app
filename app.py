@@ -2,9 +2,10 @@ import streamlit as st
 from docx import Document
 import pdfplumber
 import json
+import os
 from openai import OpenAI
 
-client = OpenAI(api_key="SUA_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 st.title("CV Auto Formatter")
 
