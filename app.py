@@ -27,7 +27,8 @@ def extract_text(file):
 
 if st.button("Gerar CV"):
     
-    ```
+```
+    
 if cv_file and template_file:
 
     with st.spinner("A processar..."):
