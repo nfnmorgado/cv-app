@@ -41,8 +41,8 @@ def replace_text_in_paragraphs(doc, replacements):
 
 
 if st.button("Gerar CV"):
-    if not cv_file or not template_file:
-        st.error("Faz upload dos dois ficheiros")
+    if cv_file is None or template_file is None:
+        st.warning("Faz upload dos dois ficheiros")
     else:
         with st.spinner("A processar..."):
             cv_text = extract_text(cv_file)
