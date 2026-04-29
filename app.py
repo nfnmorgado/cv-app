@@ -54,7 +54,18 @@ if st.button("Gerar CV"):
                 messages=[{"role": "user", "content": prompt}]
             )
 
-            data = json.loads(response.choices[0].message.content)
+            raw = response.choices[0].message.content
+
+import re
+match = re.search(r'{.*}', raw, re.DOTALL)
+
+if match:
+json_str = match.group(0)
+data = json.loads(json_str)
+else:
+st.error("Erro ao interpretar resposta da AI")
+st.write(raw)
+return
 
             # 3. Preencher template
             doc = Document(template_file)
