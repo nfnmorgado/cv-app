@@ -18,6 +18,7 @@ if file.name.endswith(".pdf"):
 text = ""
 with pdfplumber.open(file) as pdf:
 for page in pdf.pages:
+if page.extract_text():
 text += page.extract_text() + "\n"
 return text
 else:
