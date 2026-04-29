@@ -26,14 +26,10 @@ def extract_text(file):
         return "\n".join([p.text for p in doc.paragraphs])
 
 if st.button("Gerar CV"):
-
 if cv_file and template_file:
-
     with st.spinner("A processar..."):
-
         # 1. Extrair texto
         cv_text = extract_text(cv_file)
-
         # 2. IA parsing
         prompt = f"""
         Extrai:
