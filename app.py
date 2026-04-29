@@ -16,14 +16,14 @@ template_file = st.file_uploader("Upload Template DOCX")
 def extract_text(file):
     if file.name.endswith(".pdf"):
         text = ""
-    with pdfplumber.open(file) as pdf:
-    for page in pdf.pages:
-    if page.extract_text():
-        text += page.extract_text() + "\n"
-    return text
-    else:
-        doc = Document(file)
-    return "\n".join([p.text for p in doc.paragraphs])
+            with pdfplumber.open(file) as pdf:
+                for page in pdf.pages:
+                    if page.extract_text():
+                        text += page.extract_text() + "\n"
+                            return text
+                                else:
+                                    doc = Document(file)
+                                        return "\n".join([p.text for p in doc.paragraphs])
 
 if st.button("Gerar CV"):
 
