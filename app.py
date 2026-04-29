@@ -3,72 +3,104 @@ from docx import Document
 import pdfplumber
 import json
 import os
+import re
 from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 st.title("CV Auto Formatter")
 
-# Uploads
+cv_file = st.file_uploader("Upload CV (PDF ou DOCX)", type=["pdf", "docx"])
+template_file = st.file_uploader("Upload Template DOCX", type=["docx"])
 
-cv_file = st.file_uploader("Upload CV (PDF ou DOCX)")
-template_file = st.file_uploader("Upload Template DOCX")
 
 def extract_text(file):
-    if file.name.endswith(".pdf"):
+    if file.name.lower().endswith(".pdf"):
         text = ""
+
         with pdfplumber.open(file) as pdf:
             for page in pdf.pages:
-                if page.extract_text():
-                    text += page.extract_text() + "\n"
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+
         return text
-    else:
+
+    elif file.name.lower().endswith(".docx"):
         doc = Document(file)
         return "\n".join([p.text for p in doc.paragraphs])
 
+    return ""
+
+
+def replace_text_in_paragraphs(doc, replacements):
+    for p in doc.paragraphs:
+        for key, value in replacements.items():
+            if key in p.text:
+                p.text = p.text.replace(key, str(value))
+
+
 if st.button("Gerar CV"):
-    if cv_file and template_file:
+    if not cv_file or not template_file:
+        st.error("Faz upload dos dois ficheiros")
+    else:
         with st.spinner("A processar..."):
-            # 1. Extrair texto
             cv_text = extract_text(cv_file)
-            # 2. IA parsing
+
             prompt = f"""
-            Extrai:
-            - initials
-            - experience
-            - availability
-            - english_level
-            - country
-            - skills (separados por ;)
-            - summary
-            - work_experience (company, position, start, end, description)
+Extrai os seguintes campos do CV:
 
-            CV:
-            {cv_text}
+- initials
+- experience
+- availability
+- english_level
+- country
+- skills
+- summary
+- work_experience
 
-            Responde em JSON.
-            """
+O campo work_experience deve ser uma lista com:
+- company
+- position
+- start
+- end
+- description
+
+Responde apenas em JSON válido, sem markdown.
+
+CV:
+{cv_text}
+"""
 
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[{"role": "user", "content": prompt}]
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0
             )
 
             raw = response.choices[0].message.content
 
-import re
-match = re.search(r'{.*}', raw, re.DOTALL)
+            match = re.search(r"\{.*\}", raw, re.DOTALL)
 
-if match:
-    json_str = match.group(0)
-    data = json.loads(json_str)
-else:
-    st.error("Erro ao interpretar resposta da AI")
-    st.write(raw)
-return
+            if not match:
+                st.error("Erro ao interpretar resposta da IA")
+                st.write(raw)
+                st.stop()
 
-            # 3. Preencher template
+            try:
+                data = json.loads(match.group(0))
+            except json.JSONDecodeError:
+                st.error("A IA respondeu com JSON inválido")
+                st.write(raw)
+                st.stop()
+
             doc = Document(template_file)
+
+            skills = data.get("skills", "")
+            if isinstance(skills, list):
+                skills = "; ".join(skills)
 
             replacements = {
                 "[Candidates First and Last Initials]": data.get("initials", ""),
@@ -76,31 +108,32 @@ return
                 "[Availability]": data.get("availability", ""),
                 "[English]": data.get("english_level", ""),
                 "[Country]": data.get("country", ""),
-                "[Skills]": data.get("skills", ""),
+                "[Skills]": skills,
                 "[Summary]": data.get("summary", "")
             }
 
-        for p in doc.paragraphs:
-            for k, v in replacements.items():
-                if k in p.text:
-                    p.text = p.text.replace(k, str(v))
+            replace_text_in_paragraphs(doc, replacements)
 
-        # Work experience (primeiro)
-        if data.get("work_experience"):
-            exp = data["work_experience"][0]
-            for p in doc.paragraphs:
-                if "[Company Name]" in p.text:
-                    p.text = f"{exp['company']} - {exp['position']}"
-                if "[start date" in p.text:
-                    p.text = f"{exp['start']} to {exp['end']}"
-                if "[Description]" in p.text:
-                    p.text = exp['description']
+            work_experience = data.get("work_experience", [])
 
-        output = "output.docx"
-        doc.save(output)
+            if work_experience:
+                exp = work_experience[0]
 
-        with open(output, "rb") as f:
-            st.download_button("Download CV", f, file_name="CV_final.docx")
+                exp_replacements = {
+                    "[Company Name]": f"{exp.get('company', '')} - {exp.get('position', '')}",
+                    "[start date]": f"{exp.get('start', '')} to {exp.get('end', '')}",
+                    "[Description]": exp.get("description", "")
+                }
 
-else:
-    st.error("Faz upload dos dois ficheiros")
+                replace_text_in_paragraphs(doc, exp_replacements)
+
+            output = "output.docx"
+            doc.save(output)
+
+            with open(output, "rb") as f:
+                st.download_button(
+                    "Download CV",
+                    f,
+                    file_name="CV_final.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
