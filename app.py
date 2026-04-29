@@ -92,4 +92,3 @@ if st.button("Gerar CV"):
 
 else:
     st.error("Faz upload dos dois ficheiros")
-```
