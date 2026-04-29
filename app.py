@@ -14,7 +14,7 @@ cv_file = st.file_uploader("Upload CV (PDF ou DOCX)")
 template_file = st.file_uploader("Upload Template DOCX")
 
 def extract_text(file):
-if file.name.endswith(".pdf"):
+    if file.name.endswith(".pdf"):
 text = ""
 with pdfplumber.open(file) as pdf:
 for page in pdf.pages:
