@@ -10,9 +10,38 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 st.title("CV Auto Formatter")
 
-cv_file = st.file_uploader("Upload CV (PDF ou DOCX)", type=["pdf", "docx"])
-template_file = st.file_uploader("Upload Template DOCX", type=["docx"])
 
+def extract_text(file):
+    if file.name.lower().endswith(".pdf"):
+        text = ""
+        with pdfplumber.open(file) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+        return text
+
+    doc = Document(file)
+    return "\n".join([p.text for p in doc.paragraphs])
+
+
+with st.form("cv_form"):
+    cv_file = st.file_uploader("Upload CV (PDF ou DOCX)", type=["pdf", "docx"])
+    template_file = st.file_uploader("Upload Template DOCX", type=["docx"])
+
+    submitted = st.form_submit_button("Gerar CV")
+
+
+if submitted:
+    if cv_file is None or template_file is None:
+        st.error("Faz upload dos dois ficheiros")
+        st.stop()
+
+    with st.spinner("A processar..."):
+        cv_text = extract_text(cv_file)
+
+        st.success("Ficheiros lidos com sucesso.")
+        st.write(cv_text[:1000])
 
 def extract_text(file):
     if file.name.lower().endswith(".pdf"):
